@@ -1,0 +1,232 @@
+% !TEX TS-program = pdflatexmk
+
+\documentclass[11pt,english]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb, bm, amsthm}
+
+% FONT: either newpxtext or mathpazo. quite similar
+\usepackage{newpxtext, newpxmath}
+%\usepackage{mathpazo}
+
+\usepackage{graphicx, import, subcaption, rotating, verbatim, float}
+\usepackage{setspace}
+\usepackage{pdflscape}
+\usepackage{booktabs} 
+
+\usepackage[table]{xcolor}
+\usepackage{nicematrix}
+
+\usepackage[authoryear]{natbib}
+\bibliographystyle{ecta} 
+\setlength{\bibsep}{0.0pt}
+\def\bibfont{\small}
+\usepackage{color} 
+\definecolor{red}{RGB}{153,0,0}
+\definecolor{blue}{RGB}{0,0,153}
+\definecolor{green}{RGB}{0,102,0}
+
+\usepackage[most]{tcolorbox}
+\usepackage{parcolumns}  
+ \usepackage[linesnumbered, ruled, vlined]{algorithm2e} 
+
+\usepackage{enumitem}
+
+\usepackage{tabularx, colortbl, xcolor, makecell, booktabs}
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\definecolor{lightgray}{gray}{0.95}
+
+\usepackage[page]{appendix}
+ 
+%\usepackage{tocloft}
+\usepackage{titlesec}
+
+\usepackage{soul} %for highlight \hl{} command
+
+%\usepackage{etoolbox}
+\usepackage{etoc}
+
+%code font
+\newcommand{\code}[1]{\texttt{#1}}
+
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\pc}[1]{\dot{#1}}
+\newcommand{\er}[1]{(\ref{eq:#1})}
+\newcommand{\fr}[1]{Figure~\ref{fig:#1}}
+\newcommand{\tr}[1]{Table~\ref{tab:#1}}
+\newcommand{\sr}[1]{Section~\ref{sec:#1}}
+\newcommand{\ar}[1]{Appendix~\ref{app:#1}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{assumption}{Assumption}
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{example}{Example}
+
+
+\makeatletter
+% *, 1, 2, ...
+\renewcommand*{\@fnsymbol}[1]{\ifcase#1\or \else\@arabic{\numexpr#1-1\relax}\fi}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REF AND HYPERLINK COLOURS
+
+%\usepackage[pdftex, hidelinks]{hyperref}
+%\hypersetup{colorlinks=false, linkcolor=red, filecolor=red, urlcolor=red, citecolor=red}
+
+\usepackage{hyperref}        
+\hypersetup{
+    bookmarks=true,         % show bookmarks bar?
+    unicode=false,          % non-Latin characters in Acrobat?s bookmarks
+    pdftoolbar=true,        % show Acrobat?s toolbar?
+    pdfmenubar=true,        % show Acrobat?s menu?
+    pdffitwindow=false,     % window fit to page when opened
+    pdfstartview={FitH},    % fits the width of the page to the window
+    pdftitle={Job Mobility and Unemployment Risk},    % title
+    pdfauthor={Clymo Denderski Mercan and Schoefer},     % author
+%    pdfsubject={Subject},   % subject of the document
+%    pdfcreator={Creator},   % creator of the document
+%    pdfproducer={Producer}, % producer of the document
+%    pdfkeywords={keyword1} {key2} {key3}, % list of keywords
+    pdfnewwindow=true,      % links in new window
+    colorlinks=true,     % color of internal links (change box color with linkbordercolor)
+    citecolor=blue,        % color of links to bibliography
+    filecolor=blue,      % color of file links
+    urlcolor=blue,           % color of external links
+    linkcolor=blue
+    }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\title{Continuous time incomplete market codes \thanks{\noindent \hspace*{-2em} %We are grateful to XXX. The views expressed in this paper are those of the authors and do not necessarily reflect the position of XXX. Clymo: 
+Contact: \url{alex.clymo@psemail.eu}. 
+}}
+
+\author{Alex Clymo \\ PSE}
+
+%\author{%
+%\begin{tabular}{cc c}
+%Alex Clymo  & \;\;\;\;\;\;\;\;\; &  Other  \\
+%\textit{ PSE }  & \;\;\;\;\;\;\;\;\; &   \textit{ Institution} \\
+% \; & \; \\
+%Other  & \;\;\;\;\;\;\;\;\; & Other  \\
+%\textit{Institution}  & \;\;\;\;\;\;\;\;\; & \textit{Institution} \\
+%\end{tabular}
+%}
+
+%\date{June 2099}
+
+\begin{document}
+
+\maketitle
+
+
+%\begin{abstract}
+%\noindent Some basic codes. 
+%\end{abstract}
+
+\onehalfspacing
+
+\section{Introduction} 
+\label{sec:introduction} 
+
+This repository provides some basic but clean codes for the solution of heterogeneous agent incomplete markets models à la \cite{BewleyStationary1986}, \cite{ImrohorogluCost1989}, \cite{HuggettRiskfree1993}, and \cite{AiyagariUninsured1994} in continuous time. The codes are applications of the \cite{AchdouEtAlIncome2022} methods, and details of the methods can be found in that paper and its online appendix. 
+
+The codes set out a consumer problem which can be applied to both models. A switch then allows you to control whether we solve the model in partial equilibrium or in the general equilibrium of either \cite{AiyagariUninsured1994} (i.e. with capital) or \cite{HuggettRiskfree1993} (i.e. with bonds). The problem is set and solved in steady state without aggregate shocks. 
+
+
+\section{A generic consumer problem}
+
+\subsection{Agent's problem}
+
+A unit continuum of infinitely lived agents faces both idiosyncratic and aggregate productivity risk. Each agent saves using asset holdings \( a \geq \underline{a} \), subject to a borrowing constraint $\underline{a} \leq 0$. Agents inelastically provide one unit of labour, and have idiosyncratic productivity shocks \( z \), which follow a Poisson jump process with discrete values $z_j$ for $j=1,...,N_z$. A new value is drawn at rate $\alpha_z$ from a Markov distribution $\gamma_{j,j'}$. They take the wage $w$ and interest rate $r$ as given. 
+
+Agents choose consumption \( c \) to maximize expected lifetime utility, discounted at rate \( \rho \). The value function \( v(a, z ) \) satisfies the Hamilton-Jacobi-Bellman (HJB) equation:
+\begin{equation}
+\label{eq:hjb1}
+\rho v(a, z_j) = \max_{c} \, u(c) + v_a(a, z_j )\big(w z_j + r a - c\big)  + \alpha_z \left( \sum_{j'} \pi_{j,j'} v(a, z_{j'}) - v(a, z_j) \right)
+\end{equation}
+
+\subsection{Kolmogorov Forward Equation} 
+
+$\mu(a,z)$ is the equilibrium distribution of agents across asset and productivity levels. The distribution evolves over time according to the Kolmogorov Forward (KF, or Fokker-Planck) equation. Letting $\dot \mu(a, z)$ denote the time derivative, we have
+\begin{equation}
+\label{eq:kf1}
+\dot \mu(a, z_j) = - \frac{\partial}{\partial a} \left[ \left( w z_j + r  a - c(a,z_j) \right) \mu(a, z_j) \right]  + \alpha_z \sum_{j'} \pi_{j,j'} \mu(a, z_{j'}) - \alpha_z \mu(a, z_j)
+\end{equation}
+In steady state $\dot \mu(a, z_j) = 0$. 
+
+
+\section{Market clearing and calibration} 
+
+One unit of time is taken as one year. We take standard values for most parameters. We fix the borrowing constraint to be equal to the quarterly average wage: $\underline a = -1/4 w E[z]$. 
+
+\subsection{Partial equilibrium}
+
+The worker takes some fixed $w$ and $r$ as given and we solve the value function and distribution. 
+
+\subsection{\cite{AiyagariUninsured1994} style model}
+
+Firms operate a constant returns production function and rent capital and labor from households. The aggregate wage and interest rate satisfy:
+\begin{equation}
+\label{eq:prices}
+w = Z F_L(K, L), \qquad r = Z F_K(K, L) - \delta
+\end{equation}
+where aggregate output $Y$ is produced from the production function \( Y = Z F(K, L) \). \( K \) and \( L \) denote aggregate capital and efficiency units of labor, and \( \delta \) is the depreciation rate. Given the assumed idiosyncratic risk process, total labour is fixed at, \( L = \int z \, d\mu(a,z) = \bar L\). Market clearing requires:
+\begin{equation}
+K = \int a \, d\mu(a,z), \qquad C = \int c(a,z,\Omega) \, d\mu(a,z)
+\end{equation}
+Here $c(a,z,\Omega)$ is the consumption policy function in equilibrium. These conditions equivalently imply the aggregate resource constraint $Y = C + I$ where $I = \int \dot a(a,z,\Omega) \, d\mu(a,z) - \delta K$ is aggregate investment. 
+
+We choose $Z$ to target $w=1$. We use a single loop to find the equilibrium $K$ and calibrate $Z$. 
+
+\subsection{\cite{HuggettRiskfree1993} style model}
+
+There is no capital and production is only through labour, giving a fixed wage which we set to $w=1$. Workers save in a bond in zero net supply, so the interest rate $r$ adjusts so that $\int a \, d\mu(a,z) = 0$. We use a loop to adjust $r$ to clear the market. 
+
+
+
+%\clearpage
+%\section{Conclusion} 
+%\label{sec:conclusion}
+%
+%XXX
+
+\bibliography{HAML_refs}
+
+
+ 
+%\clearpage
+%
+%% \restoregeometry
+%% \FloatBarrier
+%
+%\appendix
+%%\pagenumbering{arabic} % restarts page numbering for Appendix
+%\begin{center}
+%\textbf{\LARGE APPENDIX}
+%\end{center}
+%
+%\vspace{-2em}
+%
+%\setcounter{figure}{0} \renewcommand{\thefigure}{A.\arabic{figure}}
+%\setcounter{table}{0} \renewcommand{\thetable}{A.\arabic{table}}
+%\setcounter{equation}{0} \renewcommand{\theequation}{A.\arabic{equation}}
+%
+%\singlespacing
+%\addtocontents{lof}{\protect\setcounter{tocdepth}{1}}
+%\vspace{-.2cm}
+%\addtocontents{lot}{\protect\setcounter{tocdepth}{1}}
+%\etocsettagdepth{mtchapter}{none}
+%\etocsettagdepth{mtappendix}{subsection}
+%
+%
+%\section{Appendix to XXX}
+%
+%
+%
+
+
+\end{document}
