@@ -1,0 +1,7 @@
+## DS_Store files created by Mac OS
+.DS_Store
+
+## Matlab autosave files
+*.asv
+
+## Latex: copy from https://github.com/github/gitignore/blob/main/TeX.gitignore if desired
