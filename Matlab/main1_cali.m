@@ -1,10 +1,30 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Calibrate the steady state of the Krusell Smith (1998) model
+% Continuous time incomplete markets codes (Bewley-Aiyagari-Huggett)
 %
+% Author: Alex Clymo
+% Date: July 2025
+% Repository: github->alexclymo->incomplete-markets
+%
+% Solves the steady state policies and distributions and calibrates
+% parameters. Heavily based on the original Achdou et al (2022) codes, 
+% adapted for my own style and workflow. Much work was developed over many
+% projects in collaboration with Piotr Denderski. 
+%
+% Use: Use cali_version to select whether solving partial equilibrium,
+% Aiyagari, or Huggett style model. Code will solve steady state and
+% calibrate certain parameters, and produce plots for the policy functions
+% and distribution. 
+% 
 % One unit of time = 1 year
-% Aggregate production function: Y = Z K^alpha L^(1-alpha)
 %
-% -- Alex Clymo, July 2025
+% Partial equilibrium details: (cali_version = 'pe')
+%   Fix rss and wss to arbitrary values
+% Huggett details: (cali_version = 'huggett')
+%   Fix wss, solve rss which clears the bond market
+% Aiyagari details: (cali_version = 'aiyagari')
+%   Aggregate production function: Y = Z K^alpha L^(1-alpha)
+%   Solve Kss which clears the market, calibrate Z to hit wss = 1
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,20 +62,12 @@ load_init = 0
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Settings for each calibration version
-
-switch cali_version
-    case 'aiyagari' %main calibration: EU-tenure via composition effects
-        Na = 200; %size of asset grid
-        Nz = 3; %size of z grid
-    otherwise
-        error('invalid cali version')
-end
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Other fixed controls (i.e. not changed often or between calibrations)
 
+%number of nodes
+Na = 200; %size of asset grid
+Nz = 3; %size of z grid
+        
 %calibration tolerance
 tolC = 1e-5;
 
@@ -73,22 +85,33 @@ zetaV = 1;  %extra dampening (lower is more dampening)
 
 rho = -log(1-0.05); %discount rate
 sigma = 2; %risk aversion coefficient, u(c) = c^(1-sigma)/(1-sigma);
-alpha = 1/3; %capital share
-delta = 0.1;
 aBarMult = -3/12; %borrowing constraint (aBar < 0 = borrowing) as multiple of av yearly wage
 alphaZ = 1; %arrival rate of prod shock
 rhoZ = 0.7;
 sigmaZ = 0.3;
 
-% x grid limits
+% x grid limits: agrid = aBar + xgrid
 xMin = 0; %should be zero by definition
 xMax = 5; %set high enough not to bind in ergodic dist
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Calibration targets
+% Parameters, targets, and settings for each calibration version
 
-wss_target = 1;
+switch cali_version
+    case 'aiyagari'
+        alpha = 1/3; %capital share
+        delta = 0.1; %capital depreciation
+        wss_target = 1;
+    case 'huggett'
+        wss = 1; %fixed wage
+        Ass_supply = 0; % assets in zero net supply
+    case 'pe'
+        wss = 1;
+        rss = -log(1-0.02);
+    otherwise
+        error('invalid cali version')
+end
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -145,18 +168,26 @@ zgrid_s = permute(repmat(zgrid,[1,Na]),[2,1]);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Initial parameter guesses
 
-% We will normalise w = 1 by scaling Z
-wss = wss_target;
-
-% guess some interest rate below rho
-rss = rho - 0.02;
-
-% implied Kss and Zss for this rss guess
-% wage: w = (1-alpha) Z K^alpha L^(-alpha)
-% interest rate: r = alpha Z K^(alpha-1) L^(1-alpha)
-% w/r = (1-alpha)/alpha * K / L
-Kss = wss/rss * alpha/(1-alpha) * Lss;
-Zss = wss / ( (1-alpha) * Kss^alpha * Lss^(-alpha) );
+switch cali_version
+    case 'aiyagari'
+        % We will normalise wss = wss_target by scaling Z
+        wss = wss_target;
+        % initial guess some interest rate below rho
+        rss = rho - 0.02;
+        % implied Kss and Zss for this rss guess
+        % wage: w = (1-alpha) Z K^alpha L^(-alpha)
+        % interest rate: r = alpha Z K^(alpha-1) L^(1-alpha)
+        % w/r = (1-alpha)/alpha * K / L
+        Kss = wss/rss * alpha/(1-alpha) * Lss;
+        Zss = wss / ( (1-alpha) * Kss^alpha * Lss^(-alpha) );
+    case 'huggett'
+        % initial guess some interest rate below rho
+        rss = rho - 0.02;
+    case 'pe'
+        
+    otherwise
+        error('invalid cali version')
+end
 
 % initial guesses for worker value funs
 if sigma ~= 1
@@ -172,10 +203,9 @@ NA = Na*Nz;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load saved initial guesses
 
-if load_init
-    try
+switch load_init
+    case 1
         load(['./mat/init_cali_',cali_version])
-    end
 end
 
 
@@ -184,9 +214,6 @@ end
 
 % pre build some A matrix indices
 [rowInd_A_Xup,colInd_A_Xup,rowInd_A_Xdown,colInd_A_Xdown] = makeAinds(Na,Nz);
-
-dvfwd = zeros(Na,Nz); %preallocation, forward differenced value function
-dvbck = zeros(Na,Nz); %preallocation, backward differenced value function
 
 %Number of non-empty nodes in the sparse matrix -- will be overwritten with
 %the true number after the first iteration
@@ -214,13 +241,15 @@ par.rho = rho;
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% CALIBRATION ALGORITHM
+% Main algorithm: Loop to jointly calibrate and solve general equilibrium
 tic
 
 errC = 1; errV = 1;
 iterC = 1;
 while errC > tolC %outer wage loop
 
+    %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % For Aiyagari model, update r and w to be consistent with Kss guess
 
     switch cali_version
         case 'aiyagari'
@@ -239,9 +268,8 @@ while errC > tolC %outer wage loop
 
     
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % SOLVE ERGODIC DISTRIBUTION
+    % Solve ergodic distribution
     
-
     %transpose original A matrix
     AT = A';
 
@@ -250,46 +278,45 @@ while errC > tolC %outer wage loop
 
     %unpack ergDist structure
     gtil = ergDist.gtil; %distribution pre-scaled with trapezoid weights
-    g = ergDist.g;
     gtil_mx = ergDist.gtil_mx; %marginal distributions
     gtil_mz = ergDist.gtil_mz;
 
 
-    %disp(['time solving ergodic dist: ',num2str(toc),' seconds'])
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % COMPUTE BASIC AGGREGATES
+    % Compute aggregates needed for calibration or GE
     
-
-    % steady state capital = average across agents
-    Kss_ = agrid'*gtil_mx;
+    % steady state assets = sum (average) across agents
+    Ass = agrid'*gtil_mx;
 
     
-    %disp(['time on stocks and flows: ',num2str(toc),' seconds'])
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % CALIBRATION ERRORS AND PARAMETER UPDATES
-    tic
-
-    errK = (Kss_-Kss)/(1e-5+abs(Kss));
-    errW = (wss-wss_target)/(1e-5+abs(wss_target));
-
-    errC = max(abs([errK;errW]))
-
-    % only update parameters if err greater than tolerance
-    if errC > tolC
-        
-        % % adjust rss towards new value
-        % zetaR = 0.1; %above 0.1 starts to cause problems
-        % rss = zetaR * rss_ + (1-zetaR) * rss;
-        
-        % adjust Kss towards new value
-        zetaK = 0.5; %above 0.5 starts to cause problems
-        Kss = zetaK * Kss_ + (1-zetaK) * Kss;
-        
-        
-        % adjust Zss to move wss towards targeted value
-        zetaW = 0.5;
-        Zss = Zss - zetaW*errW;
-        
+    % Errors and updates
+    
+    switch cali_version
+        case 'aiyagari'
+            Kss_ = Ass;
+            errK = (Kss_-Kss)/(1e-5+abs(Kss))
+            errW = (wss-wss_target)/(1e-5+abs(wss_target))
+            errC = max(abs([errK;errW]));
+            % only update parameters if err greater than tolerance
+            if errC > tolC
+                % adjust Kss towards new value
+                zetaK = 0.5; %above 0.5 starts to cause problems
+                Kss = zetaK * Kss_ + (1-zetaK) * Kss;
+                % adjust Zss to move wss towards targeted value
+                zetaW = 0.5;
+                Zss = Zss - zetaW*errW;
+            end
+        case 'huggett'
+            errA = Ass-Ass_supply
+            errC = abs(errA);
+            % adjust rss towards new value
+            zetaR = 0.1; %above 0.1 starts to cause problems
+            rss = rss - zetaR*errA;
+        case 'pe'
+            errC = 0;
+        otherwise
+            error('invalid cali version')
     end
 
     iterC = iterC+1;
@@ -301,8 +328,8 @@ disp(['time to calibrate model: ',num2str(toc),' seconds'])
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot steady state values and policies
 
-
-%p lot spy of A matrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Plot spy of A matrix
 
 spy(A)
 % custom lines to show each block
@@ -315,7 +342,40 @@ grid on
 title('$A$ matrix')
 
 
-% plot value and policy functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Plot distributions
+
+figure('position',[100,300,1000,300])
+MM = 1; NN = 3;
+xlims = [min(agrid),max(agrid)];
+
+subplot(MM,NN,1)
+plot(agrid,gtil_mx)
+grid on
+box
+xlabel('assets $a$')
+xlim(xlims)
+title('Marginal asset distribution')
+
+subplot(MM,NN,2)
+plot(zgrid,gtil_mz,'-x')
+grid on
+box
+xlabel('Productivity $z$')
+%xlim(xlims)
+title('Marginal productivity distribution')
+
+subplot(MM,NN,3)
+plot(agrid,gtil)
+grid on
+box
+xlabel('assets $a$')
+xlim(xlims)
+title('Joint distribution $\mu(a,z)$')
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Plot value and policy functions
 
 figure('position',[100,300,1000,300])
 MM = 1; NN = 3;
@@ -352,7 +412,7 @@ title('asset drift $\dot a(a,z)$')
 % save initial values for calibration loop
 switch cali_version
     case 'aiyagari'
-        save(['./mat/init_cali_',cali_version], 'v','rss','Zss')
+        save(['./mat/init_cali_',cali_version], 'v','Kss','Zss')
     case 'huggett'
         save(['./mat/init_cali_',cali_version], 'v','rss')
     case 'pe'

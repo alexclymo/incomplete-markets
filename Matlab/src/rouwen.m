@@ -53,7 +53,7 @@ end
 
 % GRIDS
 step_R = sig_uncond*sqrt(n_R - 1); 
-z_Rouw=[-1:2/(n_R-1):1]';
+z_Rouw=(-1:2/(n_R-1):1)';
 z_Rouw=mu_uncond+step_R*z_Rouw;
 
 % CONSTRUCTION OF THE TRANSITION PROBABILITY MATRIX

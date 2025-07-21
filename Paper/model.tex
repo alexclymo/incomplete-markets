@@ -1,5 +1,5 @@
 % !TEX TS-program = pdflatexmk
-
+ 
 \documentclass[11pt,english]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb, bm, amsthm}
@@ -129,6 +129,8 @@ Contact: \url{alex.clymo@psemail.eu}.
 
 \onehalfspacing
 
+\vspace{-1cm}
+
 \section{Introduction} 
 \label{sec:introduction} 
 
@@ -176,9 +178,9 @@ w = Z F_L(K, L), \qquad r = Z F_K(K, L) - \delta
 \end{equation}
 where aggregate output $Y$ is produced from the production function \( Y = Z F(K, L) \). \( K \) and \( L \) denote aggregate capital and efficiency units of labor, and \( \delta \) is the depreciation rate. Given the assumed idiosyncratic risk process, total labour is fixed at, \( L = \int z \, d\mu(a,z) = \bar L\). Market clearing requires:
 \begin{equation}
-K = \int a \, d\mu(a,z), \qquad C = \int c(a,z,\Omega) \, d\mu(a,z)
+K = \int a \, d\mu(a,z), \qquad C = \int c(a,z) \, d\mu(a,z)
 \end{equation}
-Here $c(a,z,\Omega)$ is the consumption policy function in equilibrium. These conditions equivalently imply the aggregate resource constraint $Y = C + I$ where $I = \int \dot a(a,z,\Omega) \, d\mu(a,z) - \delta K$ is aggregate investment. 
+Here $c(a,z)$ is the consumption policy function in equilibrium. These conditions equivalently imply the aggregate resource constraint $Y = C + I$ where $I = \int \dot a(a,z) \, d\mu(a,z) - \delta K$ is aggregate investment. 
 
 We choose $Z$ to target $w=1$. We use a single loop to find the equilibrium $K$ and calibrate $Z$. 
 

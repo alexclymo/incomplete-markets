@@ -1,12 +1,12 @@
 function [v,c,aDot,A,NelemA] = solveWorkerProblem(vInit,w,r,Delta,par)
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Extract and set up
+% Extract par structure and set up
 
 % initial value
 v = vInit;
 
-
+% extrac par structure
 tolV = par.tolV;
 maxIterV = par.maxIterV;
 zetaV = par.zetaV;
@@ -25,6 +25,9 @@ colInd_A_Xdown = par.colInd_A_Xdown;
 alphaZ = par.alphaZ;
 gammaZ = par.gammaZ;
 rho = par.rho;
+
+dvfwd = zeros(Na,Nz); %preallocation, forward differenced value function
+dvbck = zeros(Na,Nz); %preallocation, backward differenced value function
 
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,10 +49,10 @@ while errV > tolV && iterV <= maxIterV %inner value function loop
     storeFlows = zeros(NelemA,1);
     %running position of where to store next nodes
     storePos = 0;
+    
 
     %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % OPTIMAL CONSUMPTION AND ASSET DRIFT
-
 
     cStay = w*zgrid_s + r*agrid_s;%consumption when assets not changed
     mUStay = cStay.^(-sigma); %marginal utility when assets not changed
@@ -156,7 +159,7 @@ while errV > tolV && iterV <= maxIterV %inner value function loop
     NelemA = storePos;
 
     %error check: A should sum to zero along each row
-    if max(full(sum(A,2)) > 1e-10), error('A not sum to 0'), end
+    if any(full(sum(A,2)) > 1e-10), error('A rows don''t sum to 0'), end
 
     %flow utility of unemployed and employed given optimal consumption
     if sigma ~= 1
@@ -176,14 +179,13 @@ while errV > tolV && iterV <= maxIterV %inner value function loop
     errV = max(abs((vStack(:) - vNew(:))./vStack(:)));
     iterV = iterV + 1;
 
-    if max(abs(imag(vNew(:)))) error, end
+    if any(abs(imag(vNew(:)))), error('imaginary numbers in v'), end
 
     % Update v with Extra dampening if needed
     vNew = reshape(vNew,[Na,Nz]);
     if errV > tolV
         v = zetaV*vNew + (1-zetaV)*v;
     end
-
 
 
 end
