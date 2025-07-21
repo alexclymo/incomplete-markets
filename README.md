@@ -19,4 +19,4 @@ This repository contains MATLAB code for solving a continuous time incomplete ma
 
 ## Documentation
 
-A detailed description of the model and solution methods is available in the [model PDF]([Paper/model.pdf](https://github.com/alexclymo/incomplete-markets/blob/main/Paper/model.pdf)).
+A detailed description of the model and solution methods is available in the [model PDF](https://github.com/alexclymo/incomplete-markets/blob/main/Paper/model.pdf).
