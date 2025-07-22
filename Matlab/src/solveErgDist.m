@@ -1,9 +1,10 @@
-function ergDist = funSolveErgDist(AT,trX_s,Na,Nz)
+function ergDist = solveErgDist(AT,trX_s,Na,Nz)
 
 NA = Na*Nz;
 
 %time step in simul (can be huge)
 dt = 1000000;
+%dt = 1000;
 
 %initialise gtil: this is the density multiplied by agrid trapeze weights.
 %should use this for any integrations and calcuations of aggregates
@@ -13,6 +14,7 @@ gtil(1) = 1;
 %simulate
 diff = 1;
 tol = 1e-6;
+%tol = 1e-8;
 while diff > tol
     %update and diff
     gtil_ = (speye(NA) - dt*AT)\gtil;

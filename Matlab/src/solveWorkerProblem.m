@@ -1,4 +1,4 @@
-function [v,c,aDot,A,NelemA] = solveWorkerProblem(vInit,w,r,Delta,par)
+function [v,c,aDot,A,errV,NelemA] = solveWorkerProblem(vInit,w,r,Delta,par)
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Extract par structure and set up

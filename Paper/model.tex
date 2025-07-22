@@ -136,7 +136,7 @@ Contact: \url{alex.clymo@psemail.eu}.
 
 This repository provides some basic but clean codes for the solution of heterogeneous agent incomplete markets models à la \cite{BewleyStationary1986}, \cite{ImrohorogluCost1989}, \cite{HuggettRiskfree1993}, and \cite{AiyagariUninsured1994} in continuous time. The codes are applications of the \cite{AchdouEtAlIncome2022} methods, and details of the methods can be found in that paper and its online appendix. 
 
-The codes set out a consumer problem which can be applied to both models. A switch then allows you to control whether we solve the model in partial equilibrium or in the general equilibrium of either \cite{AiyagariUninsured1994} (i.e. with capital) or \cite{HuggettRiskfree1993} (i.e. with bonds). The problem is set and solved in steady state without aggregate shocks. 
+The codes set out a generic consumer problem which can be applied to all models. A switch then allows you to control whether we solve the model in partial equilibrium or in the general equilibrium of either \cite{AiyagariUninsured1994} (i.e. with capital) or \cite{HuggettRiskfree1993} (i.e. with bonds). The problem is set and solved in steady state without aggregate shocks. 
 
 
 \section{A generic consumer problem}
@@ -163,11 +163,15 @@ In steady state $\dot \mu(a, z_j) = 0$.
 
 \section{Market clearing and calibration} 
 
-One unit of time is taken as one year. We take standard values for most parameters. We fix the borrowing constraint to be equal to the quarterly average wage: $\underline a = -1/4 w E[z]$. 
+One unit of time is taken as one year. We take standard values for most parameters. We fix the borrowing constraint to be equal to the quarterly average wage: $\underline a = -1/4 w E[z]$. The code provides options for several income processes. 
 
 \subsection{Partial equilibrium}
 
 The worker takes some fixed $w$ and $r$ as given and we solve the value function and distribution. 
+
+\subsection{\cite{HuggettRiskfree1993} style model}
+
+There is no capital and production is only through labour, giving a fixed wage which we set to $w=1$. Workers save in a bond in zero net supply, so the interest rate $r$ adjusts so that $\int a \, d\mu(a,z) = 0$. We use a loop to adjust $r$ to clear the market. 
 
 \subsection{\cite{AiyagariUninsured1994} style model}
 
@@ -182,11 +186,8 @@ K = \int a \, d\mu(a,z), \qquad C = \int c(a,z) \, d\mu(a,z)
 \end{equation}
 Here $c(a,z)$ is the consumption policy function in equilibrium. These conditions equivalently imply the aggregate resource constraint $Y = C + I$ where $I = \int \dot a(a,z) \, d\mu(a,z) - \delta K$ is aggregate investment. 
 
-We choose $Z$ to target $w=1$. We use a single loop to find the equilibrium $K$ and calibrate $Z$. 
+We choose $Z$ to target $w=1$. We use a loop to jointly find the equilibrium $K$ and calibrate $Z$. 
 
-\subsection{\cite{HuggettRiskfree1993} style model}
-
-There is no capital and production is only through labour, giving a fixed wage which we set to $w=1$. Workers save in a bond in zero net supply, so the interest rate $r$ adjusts so that $\int a \, d\mu(a,z) = 0$. We use a loop to adjust $r$ to clear the market. 
 
 
 
